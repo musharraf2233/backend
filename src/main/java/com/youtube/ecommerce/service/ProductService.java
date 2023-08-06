@@ -11,63 +11,116 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductDao productDao;
+	@Autowired
+	private ProductDao productDao;
 
-    @Autowired
-    private UserDao userDao;
+	@Autowired
+	private UserDao userDao;
 
-    @Autowired
-    private CartDao cartDao;
+	@Autowired
+	private CartDao cartDao;
 
-    public Product addNewProduct(Product product) {
-        return productDao.save(product);
-    }
+	public Product addNewProduct(Product product) {
+		return productDao.save(product);
+	}
 
-    public List<Product> getAllProducts(int pageNumber, String searchKey) {
-        Pageable pageable = PageRequest.of(pageNumber,12);
+	public List<Product> getAllProducts(int pageNumber,int pageSize, String searchKey) {
+		Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-        if(searchKey.equals("")) {
-            return (List<Product>) productDao.findAll(pageable);
-        } else {
-            return (List<Product>) productDao.findByProductNameContainingIgnoreCaseOrProductDescriptionContainingIgnoreCase(
-                    searchKey, searchKey, pageable
-            );
-        }
+		if (searchKey.equals("")) {
+			return (List<Product>) productDao.findAll(pageable);
+		} else {
+			return (List<Product>) productDao
+					.findByProductNameContainingIgnoreCaseOrProductDescriptionContainingIgnoreCase(searchKey, searchKey,
+							pageable);
+		}
 
-    }
+	}
 
-    public Product getProductDetailsById(Integer productId) {
-        return productDao.findById(productId).get();
-    }
+	public List<Product> getProductsType(int pageNumber,int pageSize, String searchKey, String type) {
+		Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-    public void deleteProductDetails(Integer productId) {
-        productDao.deleteById(productId);
-    }
+		List<Product> product = productDao.findByType(pageable, type);
 
-    public List<Product> getProductDetails(boolean isSingleProductCheckout, Integer productId) {
-        if(isSingleProductCheckout && productId != 0) {
-            // we are going to buy a single product
+		List<Product> filterProduct = productDao
+				.findByProductNameContainingIgnoreCaseOrProductDescriptionContainingIgnoreCase(searchKey, searchKey,
+						pageable);
 
-            List<Product> list = new ArrayList<>();
-            Product product = productDao.findById(productId).get();
-            list.add(product);
-            return list;
-        } else {
-            // we are going to checkout entire cart
-            String username = JwtRequestFilter.CURRENT_USER;
-            User user = userDao.findById(username).get();
-            List<Cart> carts = cartDao.findByUser(user);
+		if (searchKey.equals("")) {
+			return product;
+		} else {
+			System.out.println(filterProduct.size());
+			List<Product> prodByType = new ArrayList<>();
+			for (Product prod : filterProduct) {
+				if (prod.getType().equalsIgnoreCase(type)) {
+					prodByType.add(prod);
+				}
+			}
+			System.out.println(prodByType.size());
+			return prodByType;
+		}
 
-            return carts.stream().map(x -> x.getProduct()).collect(Collectors.toList());
-        }
-    }
+	}
+	
+	public List<Product> getProductByBestSeller(){
+		List<Product> products=productDao.findAll();
+		List<Product> list=new ArrayList<>();
+		for(Product p:products) {
+			if(p.getBestSeller()==true) {
+				list.add(p);
+			}
+		}
+		return list;
+	}
+	
+	public List<Product> getProductByTrendPefume(){
+		List<Product> tProduct=productDao.findAll();
+		List<Product> tList=new ArrayList<>();
+		for(Product p:tProduct) {
+			if(p.getTrendProduct()==true) {
+				tList.add(p);
+			}
+		}
+		return tList;
+	}
+
+	public Product getProductDetailsById(Integer productId) {
+		return productDao.findById(productId).get();
+	}
+	
+	public List<Product> getProductDetailsByName(String productName) {
+		return productDao.findByProductName(productName);
+	}
+
+	public void deleteProductDetails(Integer productId) {
+		productDao.deleteById(productId);
+	}
+
+	public List<Product> getProductDetails(boolean isSingleProductCheckout, Integer productId) {
+		if (isSingleProductCheckout && productId != 0) {
+			// we are going to buy a single product
+
+			List<Product> list = new ArrayList<>();
+			Product product = productDao.findById(productId).get();
+			list.add(product);
+			return list;
+		} else {
+			// we are going to checkout entire cart
+			String username = JwtRequestFilter.CURRENT_USER;
+			User user = userDao.findById(username).get();
+			List<Cart> carts = cartDao.findByUser(user);
+
+			return carts.stream().map(x -> x.getProduct()).collect(Collectors.toList());
+		}
+	}
 }

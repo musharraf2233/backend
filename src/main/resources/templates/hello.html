@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>facebook profile</title>
+</head>
+<body>
+<h3>hello,<span th:text="${facebookProfile.name}">Some User</span></h3>
+
+<h4>here is your feed</h4>
+<div th:each="post:${feed}">
+<b th:text="${post.from.name}"></b>
+</div>
+</body>
+</html>
